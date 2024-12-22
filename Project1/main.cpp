@@ -17,8 +17,8 @@ const std::string tree_texture_path = "data/tree.jpg";
 const std::string present_model_path = "data/giftbox_obj.obj";
 const std::string present_texture_path = "data/teapot.png";
 
-const std::string floor_model_path = "data/floor.obj";
-const std::string floor_texture_path = "data/bus2.png";
+const std::string floor_model_path = "data/floor2.obj";
+const std::string floor_texture_path = "data/snowman.jpg";
 
 const std::string airship_model_path = "data/15724_Steampunk_Vehicle_Dirigible_v1.obj";
 const std::string airship_texture_path = "data/bus2.png";
@@ -27,10 +27,10 @@ const std::string target_model_path = "data/snowman.obj";
 const std::string target_texture_path = "data/snowman.jpg";
 
 enum class light_kind {PointLightSource, Spotlight, DirLightSource};
-constexpr light_kind LIGHT_KIND = light_kind::PointLightSource;
+constexpr light_kind LIGHT_KIND = light_kind::Spotlight;
 
 enum class shader_kind {Phong, OrenNayar, Toon, ToonSpecular};
-constexpr shader_kind SHADER_KIND = shader_kind::Phong;
+constexpr shader_kind SHADER_KIND = shader_kind::Toon;
 
 Model tree_model;
 Model floor_model;
@@ -68,6 +68,17 @@ struct Light {
 	glm::vec4 specular;       // Зеркальная составляющая
 };
 
+Light projector = {
+	glm::vec4(0.0f, 10.0f, 0.0f, 1.0f),  // Позиция прожектора (например, на высоте 5, по оси Y)
+	glm::vec3(0.0f, -1.0f, 0.0f),  // Направление светового луча вниз по оси Y
+	cos(glm::radians(30.0f)),  // Угол отсечения 30 градусов (косинус угла отсечения)
+	2.0f,  // Коэффициент экспоненциального затухания (можно регулировать для более мягкого или резкого падения света)
+	glm::vec3(1.f, 0.01f, 0.001f),  // Коэффициенты затухания: (constant, linear, quadratic)
+	glm::vec4(0.1f, 0.1f, 0.1f, 1.0f),  // Фоновая составляющая (слабое освещение)
+	glm::vec4(1.f, 1.f, 1.f, 1.0f),  // Рассеянная составляющая (освещает объекты белым светом)
+	glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)  // Зеркальная составляющая (белый свет для отражений)
+};
+
 Light light = {
 	glm::vec4(0.0f, 10.0f, 0.0f, 1.0f),  // Позиция прожектора (например, на высоте 5, по оси Y)
 	glm::vec3(0.0f, -1.0f, 0.0f),  // Направление светового луча вниз по оси Y
@@ -75,7 +86,7 @@ Light light = {
 	1.0f,  // Коэффициент экспоненциального затухания (можно регулировать для более мягкого или резкого падения света)
 	glm::vec3(1.f, 0.01f, 0.001f),  // Коэффициенты затухания: (constant, linear, quadratic)
 	glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),  // Фоновая составляющая (слабое освещение)
-	glm::vec4(3.0f, 3.0f, 3.0f, 1.0f),  // Рассеянная составляющая (освещает объекты белым светом)
+	glm::vec4(1.f, 1.f, 1.f, 1.0f),  // Рассеянная составляющая (освещает объекты белым светом)
 	glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)  // Зеркальная составляющая (белый свет для отражений)
 };
 
@@ -83,38 +94,7 @@ Light light = {
 GLuint Program;
 
 void InitShader() {
-	if constexpr (SHADER_KIND == shader_kind::Phong) {
-		if constexpr (LIGHT_KIND == light_kind::PointLightSource)
-			Program = load_shaders("shaders/phong_point.vert", "shaders/phong_point.frag");
-		if constexpr (LIGHT_KIND == light_kind::DirLightSource)
-			Program = load_shaders("shaders/phong_dir.vert", "shaders/phong_dir.frag");
-		if constexpr (LIGHT_KIND == light_kind::Spotlight)
-			Program = load_shaders("shaders/phong_spot.vert", "shaders/phong_spot.frag");
-	}
-	else if constexpr (SHADER_KIND == shader_kind::OrenNayar) {
-		if constexpr (LIGHT_KIND == light_kind::PointLightSource)
-			Program = load_shaders("shaders/phong_point.vert", "shaders/oren_nayar_point.frag");
-		if constexpr (LIGHT_KIND == light_kind::DirLightSource)
-			Program = load_shaders("shaders/phong_dir.vert", "shaders/oren_nayar_dir.frag");
-		if constexpr (LIGHT_KIND == light_kind::Spotlight)
-			Program = load_shaders("shaders/phong_spot.vert", "shaders/oren_nayar_spot.frag");
-	}
-	else if constexpr (SHADER_KIND == shader_kind::Toon) {
-		if constexpr (LIGHT_KIND == light_kind::PointLightSource)
-			Program = load_shaders("shaders/phong_point.vert", "shaders/toon_point.frag");
-		if constexpr (LIGHT_KIND == light_kind::DirLightSource)
-			Program = load_shaders("shaders/phong_dir.vert", "shaders/toon_dir.frag");
-		if constexpr (LIGHT_KIND == light_kind::Spotlight)
-			Program = load_shaders("shaders/phong_spot.vert", "shaders/toon_spot.frag");
-	}
-	else if constexpr (SHADER_KIND == shader_kind::ToonSpecular) {
-		if constexpr (LIGHT_KIND == light_kind::PointLightSource)
-			Program = load_shaders("shaders/phong_point.vert", "shaders/toon_spec_point.frag");
-		if constexpr (LIGHT_KIND == light_kind::DirLightSource)
-			Program = load_shaders("shaders/phong_dir.vert", "shaders/toon_spec_dir.frag");
-		if constexpr (LIGHT_KIND == light_kind::Spotlight)
-			Program = load_shaders("shaders/phong_spot.vert", "shaders/toon_spec_spot.frag");
-	}
+	Program = load_shaders("shaders/phong_spot.vert", "shaders/toon_spot.frag");
 }
 
 glm::vec3 airship_position = glm::vec3(0.0f, 3.0f, 0.0f);
@@ -173,6 +153,7 @@ void Update() {
 		airship_position[0] += airship_speed;
 	else
 		airship_position[0] -= airship_speed;
+	projector.position = glm::vec4(airship_position, 1.0f);
 
 	// update airship camera position
 	if (camera == &airship_camera) {
@@ -261,19 +242,22 @@ void Draw() {
 	glUniformMatrix4fv(glGetUniformLocation(Program, "transform.viewProjection"), 1, GL_FALSE, glm::value_ptr(projection * view));
 	glUniform3fv(glGetUniformLocation(Program, "transform.viewPosition"), 1, glm::value_ptr(camera->cameraPos));
 
-	// LIGHT
+	// Projector
+	glUniform4fv(glGetUniformLocation(Program, "projector.position"), 1, glm::value_ptr(projector.position));
+	glUniform4fv(glGetUniformLocation(Program, "projector.ambient"), 1, glm::value_ptr(projector.ambient));
+	glUniform4fv(glGetUniformLocation(Program, "projector.diffuse"), 1, glm::value_ptr(projector.diffuse));
+	glUniform4fv(glGetUniformLocation(Program, "projector.specular"), 1, glm::value_ptr(projector.specular));
+	glUniform3fv(glGetUniformLocation(Program, "projector.attenuation"), 1, glm::value_ptr(projector.attenuation));
+	glUniform3fv(glGetUniformLocation(Program, "projector.spotDirection"), 1, glm::value_ptr(projector.spotDirection));
+	glUniform1f(glGetUniformLocation(Program, "projector.spotCosCutoff"), projector.spotCosCutoff);
+	glUniform1f(glGetUniformLocation(Program, "projector.spotExponent"), projector.spotExponent);
+
+	// Light
 	glUniform4fv(glGetUniformLocation(Program, "light.position"), 1, glm::value_ptr(light.position));
 	glUniform4fv(glGetUniformLocation(Program, "light.ambient"), 1, glm::value_ptr(light.ambient));
 	glUniform4fv(glGetUniformLocation(Program, "light.diffuse"), 1, glm::value_ptr(light.diffuse));
 	glUniform4fv(glGetUniformLocation(Program, "light.specular"), 1, glm::value_ptr(light.specular));
-	if constexpr (LIGHT_KIND != light_kind::DirLightSource)
-		glUniform3fv(glGetUniformLocation(Program, "light.attenuation"), 1, glm::value_ptr(light.attenuation));
 
-	if constexpr (LIGHT_KIND == light_kind::Spotlight) {
-		glUniform3fv(glGetUniformLocation(Program, "light.spotDirection"), 1, glm::value_ptr(light.spotDirection)); // Направление прожектора
-		glUniform1f(glGetUniformLocation(Program, "light.spotCosCutoff"), light.spotCosCutoff); // Косинус угла отсечения
-		glUniform1f(glGetUniformLocation(Program, "light.spotExponent"), light.spotExponent); // Экспоненциальное затухание
-	}
 
 	glUniform1i(glGetUniformLocation(Program, "material.texture"), 0);
 	glUniform4f(glGetUniformLocation(Program, "material.ambient"), 1.0f, 1.0f, 1.0f, 1.0f);
@@ -281,9 +265,6 @@ void Draw() {
 	glUniform4f(glGetUniformLocation(Program, "material.specular"), 1.0f, 1.0f, 1.0f, 1.0f);
 	glUniform4f(glGetUniformLocation(Program, "material.emission"), 0.0f, 0.0f, 0.0f, 1.0f);
 	glUniform1f(glGetUniformLocation(Program, "material.shininess"), 32.0f);
-
-	if constexpr (SHADER_KIND == shader_kind::OrenNayar)
-		glUniform1f(glGetUniformLocation(Program, "roughness"), 0.6f); // От 0 до 1
 
 
 	// XMAS TREE
@@ -300,9 +281,12 @@ void Draw() {
 	}
 	
 	// FLOOR
-	model = glm::mat4(1.0f);
-	model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
-	DrawModel(floor_model, model, Program);
+	for (int i = 0; i <= 0; ++i) {
+		//model = glm::translate(glm::mat4(1.0f), glm::vec3(i * 6.8, 0, 0));
+		model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
+		model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+		DrawModel(floor_model, model, Program);
+	}
 
 	// AIRSHIP
 	if (dont_draw_airship)
@@ -347,11 +331,14 @@ void HandleKeyboardInput() {
 	constexpr float lightSpeed = 0.2f;
 	static int change_camera_cool_down = 0;
 	static int freeze_cool_down = 0;
+	static int projector_cool_down = 0;
 
 	if (change_camera_cool_down > 0)
 		--change_camera_cool_down;
 	if (freeze_cool_down > 0)
 		--freeze_cool_down;
+	if (projector_cool_down > 0)
+		--projector_cool_down;
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
 		cameraShiftScale *= 2;
@@ -377,6 +364,15 @@ void HandleKeyboardInput() {
 		freeze_cool_down = 20;
 	}
 
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::L) && !projector_cool_down) {
+		if (projector.spotCosCutoff == cos(glm::radians(30.0f)))
+			projector.spotCosCutoff = cos(glm::radians(0.0f));
+		else
+			projector.spotCosCutoff = cos(glm::radians(30.0f));
+
+		projector_cool_down = 20;
+	}
+
 	if (camera == &free_camera) {
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) free_camera.cameraPos += cameraSpeed * free_camera.cameraFront * cameraShiftScale;
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) free_camera.cameraPos -= cameraSpeed * free_camera.cameraFront * cameraShiftScale;
@@ -390,12 +386,12 @@ void HandleKeyboardInput() {
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) yaw += rotationSpeed;
 	}
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) light.position[0] += lightSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) light.position[0] -= lightSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) light.position[1] += lightSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::M)) light.position[1] -= lightSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::H)) light.position[2] += lightSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) light.position[2] -= lightSpeed;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) projector.position[0] += lightSpeed;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) projector.position[0] -= lightSpeed;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) projector.position[1] += lightSpeed;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::M)) projector.position[1] -= lightSpeed;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::H)) projector.position[2] += lightSpeed;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) projector.position[2] -= lightSpeed;
 
 	if (pitch > 89.0f) pitch = 89.0f;
 	if (pitch < -89.0f) pitch = -89.0f;

@@ -24,23 +24,35 @@ uniform struct SpotLight {
     vec3 spotDirection;
     float spotCosCutoff;
     float spotExponent;
+} projector;
+
+uniform struct DirLight {
+    vec4 position;
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
 } light;
 
 out Vertex {
     vec2 texcoord;
     vec3 normal;
-    vec3 lightDir;
+    vec3 projectorDir;
+	vec3 lightDir;
     vec3 viewDir;
     float distance;
 } Vert;
 
 void main() {
     vec4 vertex = transform.model * vec4(position, 1.0);
-    vec4 lightDir = light.position - vertex;
-    gl_Position = transform.viewProjection * vertex;
-    Vert.texcoord = vec2(texcoord.x, 1.0f - texcoord.y);
-    Vert.normal = transform.normal * normal;
-    Vert.lightDir = normalize(vec3(lightDir));
-    Vert.viewDir = normalize(transform.viewPosition - vec3(vertex));
-    Vert.distance = length(lightDir);
+	gl_Position = transform.viewProjection * vertex;
+	Vert.texcoord = vec2(texcoord.x, 1.0f - texcoord.y);
+	Vert.normal = transform.normal * normal;
+	Vert.viewDir = normalize(transform.viewPosition - vec3(vertex));
+	
+	
+    vec4 projectorDir = projector.position - vertex;
+	Vert.distance = length(projectorDir);
+    Vert.projectorDir = normalize(vec3(projectorDir));
+    
+    Vert.lightDir = normalize(vec3(light.position));
 }
