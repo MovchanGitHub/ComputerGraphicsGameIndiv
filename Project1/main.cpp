@@ -10,21 +10,9 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-Model model0;
-Model model1;
-Model model2;
 Model tree_model;
 Model floor_model;
 Model airship_model;
-
-const std::string model_path = "data/Cearadactylus.obj";
-const std::string texture_path = "data/Cearadactylus.jpg";
-const std::string model_path1 = "data/Elasmosaurus.obj";
-const std::string texture_path1 = "data/Elasmosaurus.jpg";
-const std::string model_path2 = "data/Triceratops.obj";
-const std::string texture_path2 = "data/Triceratops.png";
-const std::string model_path3 = "data/treeBirch.obj";
-const std::string texture_path3 = "data/treeBirch.jpg";
 
 const std::string tree_model_path = "data/12150_Christmas_Tree_V2_L2.obj";
 const std::string tree_texture_path = "data/tree.jpg";
@@ -33,7 +21,7 @@ const std::string floor_model_path = "data/floor.obj";
 const std::string floor_texture_path = "data/bus2.png";
 
 const std::string airship_model_path = "data/15724_Steampunk_Vehicle_Dirigible_v1.obj";
-const std::string airship_texture_path = "data/New Bitmap Image.jpg";
+const std::string airship_texture_path = "data/bus2.png";
 
 enum class light_kind {PointLightSource, Spotlight, DirLightSource};
 constexpr light_kind LIGHT_KIND = light_kind::PointLightSource;
@@ -41,9 +29,22 @@ constexpr light_kind LIGHT_KIND = light_kind::PointLightSource;
 enum class shader_kind {Phong, OrenNayar, Toon, ToonSpecular};
 constexpr shader_kind SHADER_KIND = shader_kind::Phong;
 
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+struct Camera {
+	glm::vec3 cameraPos;
+	glm::vec3 cameraFront;
+	glm::vec3 cameraUp;
+};
+
+Camera free_camera { 
+	glm::vec3(0.0f, 0.0f, 3.0f),
+	glm::vec3(0.0f, 0.0f, -1.0f),
+	glm::vec3(0.0f, 1.0f, 0.0f),
+};
+
+Camera airship_camera;
+
+Camera* camera = &free_camera;
+
 float yaw = -90.0f;
 float pitch = 0.0f;
 
@@ -108,22 +109,36 @@ void InitShader() {
 }
 
 glm::vec3 airship_position = glm::vec3(0.0f, 5.0f, 0.0f);
+bool dont_draw_airship = false;
 bool airship_dir = +1;
 void Update() {
 	static float time = 0;
 	static float eps = 1e-4;
-	static float airship_speed = 0.1;
-	constexpr static float delta_time_to_turn = 100;
+	static float airship_speed = 0.065;
+	constexpr static float delta_time_to_turn = 300;
 	static float next_turn_time = delta_time_to_turn;
 	++time;
+
+	// update airship position
 	if (abs((time + delta_time_to_turn / 2) - next_turn_time) < eps) {
 		next_turn_time += delta_time_to_turn;
 		airship_dir = !airship_dir;
+		dont_draw_airship = true;
 	}
 	if (airship_dir)
 		airship_position[0] += airship_speed;
 	else
 		airship_position[0] -= airship_speed;
+
+	// update airship camera position
+	if (camera == &airship_camera) {
+		glm::vec3 new_camera_pos = airship_position;
+		new_camera_pos.y += 5;
+		new_camera_pos.x -= airship_dir ? 5 : -5;
+		camera->cameraPos = new_camera_pos;
+		camera->cameraFront = glm::vec3((airship_dir ? 1.f : -1.f), -1.f, .0f);
+		camera->cameraUp = glm::vec3((airship_dir ? 1.f : -1.f), 1.f, .0f);
+	}
 }
 
 void InitModels() {
@@ -170,14 +185,15 @@ void Draw() {
 	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
 	front.y = sin(glm::radians(pitch));
 	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	cameraFront = glm::normalize(front);
+	free_camera.cameraFront = glm::normalize(front);
 
-	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+	glm::mat4 model;
+
+	glm::mat4 view = glm::lookAt(camera->cameraPos, camera->cameraPos + camera->cameraFront, camera->cameraUp);
 	glUniformMatrix4fv(glGetUniformLocation(Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
 
-	glm::mat4 model;
 
 	//model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, -15.0f));
 	//model = glm::translate(model, glm::vec3(0.0f, 5.5f, 3.5f));
@@ -210,10 +226,14 @@ void Draw() {
 	model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
 	DrawModel(floor_model, model, Program);
 
-	model = glm::translate(glm::mat4(1.0f), airship_position);
-	model = glm::rotate(model, glm::radians(airship_dir ? 180.0f : 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(.3f, .3f, .3f));
-	DrawModel(airship_model, model, Program);
+	if (dont_draw_airship)
+		dont_draw_airship = false;
+	else {
+		model = glm::translate(glm::mat4(1.0f), airship_position);
+		model = glm::rotate(model, glm::radians(airship_dir ? 180.0f : 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(.3f, .3f, .3f));
+		DrawModel(airship_model, model, Program);
+	}
 	//
 	//model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 3.5f));
 	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
@@ -233,7 +253,7 @@ void Draw() {
 	//DrawModel(model0, model, Program);
 
 	glUniformMatrix4fv(glGetUniformLocation(Program, "transform.viewProjection"), 1, GL_FALSE, glm::value_ptr(projection * view));
-	glUniform3fv(glGetUniformLocation(Program, "transform.viewPosition"), 1, glm::value_ptr(cameraPos));
+	glUniform3fv(glGetUniformLocation(Program, "transform.viewPosition"), 1, glm::value_ptr(camera->cameraPos));
 
 	glUniform4fv(glGetUniformLocation(Program, "light.position"), 1, glm::value_ptr(light.position));
 	glUniform4fv(glGetUniformLocation(Program, "light.ambient"), 1, glm::value_ptr(light.ambient));
@@ -274,7 +294,7 @@ void Release() {
 	// Шейдеры
 	ReleaseShader();
 	// Вершинный буфер
-	model0.release();
+	//model0.release();
 }
 
 void HandleKeyboardInput() {
@@ -282,21 +302,36 @@ void HandleKeyboardInput() {
 	float cameraShiftScale = 0.5f;
 	float rotationSpeed = 0.75f;
 	constexpr float lightSpeed = 0.2f;
+	static int change_camera_cool_down = 0;
+
+	if (change_camera_cool_down > 0)
+		--change_camera_cool_down;
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
 		cameraShiftScale *= 2;
 		rotationSpeed *= 2;
 	}
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) cameraPos += cameraSpeed * cameraFront * cameraShiftScale;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) cameraPos -= cameraSpeed * cameraFront * cameraShiftScale;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed * cameraShiftScale;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed * cameraShiftScale;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q) && !change_camera_cool_down) {
+		change_camera_cool_down = 20;
+		if (camera == &free_camera)
+			camera = &airship_camera;
+		else
+			camera = &free_camera;
+	}
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) pitch += rotationSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) pitch -= rotationSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) yaw -= rotationSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) yaw += rotationSpeed;
+	if (camera == &free_camera) {
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) free_camera.cameraPos += cameraSpeed * free_camera.cameraFront * cameraShiftScale;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) free_camera.cameraPos -= cameraSpeed * free_camera.cameraFront * cameraShiftScale;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) free_camera.cameraPos -= glm::normalize(glm::cross(free_camera.cameraFront, free_camera.cameraUp)) * cameraSpeed * cameraShiftScale;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) free_camera.cameraPos += glm::normalize(glm::cross(free_camera.cameraFront, free_camera.cameraUp)) * cameraSpeed * cameraShiftScale;
+	
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) pitch += rotationSpeed;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) pitch -= rotationSpeed;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) yaw -= rotationSpeed;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) yaw += rotationSpeed;
+	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) light.position[0] += lightSpeed;
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) light.position[0] -= lightSpeed;
@@ -307,29 +342,6 @@ void HandleKeyboardInput() {
 
 	if (pitch > 89.0f) pitch = 89.0f;
 	if (pitch < -89.0f) pitch = -89.0f;
-}
-
-void setupProjection(int width, int height) {
-	// Устанавливаем перспективную проекцию
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-
-	// Устанавливаем frustum (перспективу)
-	float nearVal = 0.1f; // Ближняя плоскость отсечения
-	float farVal = 1.0f; // Дальняя плоскость отсечения
-	float fov = 45.0f; // Угол обзора по вертикали
-
-	float aspectRatio = (float)width / (float)height;
-	float top = tan(fov * 0.5f * 3.14 / 180.0f) * nearVal;
-	float bottom = -top;
-	float right = top * aspectRatio;
-	float left = -right;
-
-	// Устанавливаем frustum с заданными параметрами
-	glFrustum(left, right, bottom, top, nearVal, farVal);
-
-	// Включаем режим модели просмотра
-	glMatrixMode(GL_MODELVIEW);
 }
 
 int main() {
@@ -345,13 +357,12 @@ int main() {
 			if (event.type == sf::Event::Closed) { window.close(); }
 			else if (event.type == sf::Event::Resized) { glViewport(0, 0, event.size.width, event.size.height); }
 		}
-		HandleKeyboardInput();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		sf::Vector2u windowSize = window.getSize();
-		setupProjection(windowSize.x, windowSize.y);
 		aspectRatio = static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y);
-		Draw();
+		HandleKeyboardInput();
 		Update();
+		Draw();
 		window.display();
 	}
 	Release();
