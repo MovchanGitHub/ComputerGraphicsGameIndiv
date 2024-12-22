@@ -110,12 +110,16 @@ void InitShader() {
 glm::vec3 airship_position = glm::vec3(0.0f, 5.0f, 0.0f);
 bool airship_dir = +1;
 void Update() {
-	static int time = 0;
+	static float time = 0;
+	static float eps = 1e-4;
 	static float airship_speed = 0.1;
-	constexpr static int delta_time_to_turn = 100;
+	constexpr static float delta_time_to_turn = 100;
+	static float next_turn_time = delta_time_to_turn;
 	++time;
-	if ((time + delta_time_to_turn / 2) % delta_time_to_turn == 0)
+	if (abs((time + delta_time_to_turn / 2) - next_turn_time) < eps) {
+		next_turn_time += delta_time_to_turn;
 		airship_dir = !airship_dir;
+	}
 	if (airship_dir)
 		airship_position[0] += airship_speed;
 	else
@@ -207,7 +211,7 @@ void Draw() {
 	DrawModel(floor_model, model, Program);
 
 	model = glm::translate(glm::mat4(1.0f), airship_position);
-	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	model = glm::rotate(model, glm::radians(airship_dir ? 180.0f : 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	model = glm::scale(model, glm::vec3(.3f, .3f, .3f));
 	DrawModel(airship_model, model, Program);
 	//
