@@ -5,15 +5,11 @@
 #include <GL/gl.h>
 #include <iostream>
 #include <random>
+#include <set>
 #include "model.h"
 #include "shader.h"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
-
-Model tree_model;
-Model floor_model;
-Model airship_model;
-Model present_model;
 
 const std::string tree_model_path = "data/12150_Christmas_Tree_V2_L2.obj";
 const std::string tree_texture_path = "data/tree.jpg";
@@ -27,11 +23,20 @@ const std::string floor_texture_path = "data/bus2.png";
 const std::string airship_model_path = "data/15724_Steampunk_Vehicle_Dirigible_v1.obj";
 const std::string airship_texture_path = "data/bus2.png";
 
+const std::string target_model_path = "data/snowman.obj";
+const std::string target_texture_path = "data/snowman.jpg";
+
 enum class light_kind {PointLightSource, Spotlight, DirLightSource};
 constexpr light_kind LIGHT_KIND = light_kind::PointLightSource;
 
 enum class shader_kind {Phong, OrenNayar, Toon, ToonSpecular};
 constexpr shader_kind SHADER_KIND = shader_kind::Phong;
+
+Model tree_model;
+Model floor_model;
+Model airship_model;
+Model present_model;
+Model target_model;
 
 struct Camera {
 	glm::vec3 cameraPos;
@@ -112,17 +117,46 @@ void InitShader() {
 	}
 }
 
-glm::vec3 airship_position = glm::vec3(0.0f, 5.0f, 0.0f);
+glm::vec3 airship_position = glm::vec3(0.0f, 3.0f, 0.0f);
 bool dont_draw_airship = false;
 bool airship_dir = +1;
 glm::vec3 present_position;
+std::vector<glm::vec3> targets;
 bool present_exists = false;
+float target_radius = 0.5f;
+float present_radius = 0.5f;
+constexpr int TARGETS_COUNT = 5;
+
+void SpawnNewTarget() {
+	static int border = 20;
+	static std::random_device dev;
+	static std::mt19937 rng(dev());
+	static std::uniform_int_distribution<std::mt19937::result_type> dist(0, 2 * border);
+
+	while (true) {
+		bool sucess = true;
+		int rval = dist(rng) - border;
+		if (rval == 0) continue;
+		for (auto& target : targets) {
+			if (target.x == rval) {
+				sucess = false;
+				break;
+			}
+		}
+
+		if (sucess) {
+			targets.emplace_back(rval, 0, 0);
+			return;
+		}
+	}
+}
+
 void Update() {
 	static float time = 0;
 	static float eps = 1e-4;
 	static float airship_speed = 0.065;
 	static float present_fall_speed = 0.065;
-	constexpr static float delta_time_to_turn = 300;
+	constexpr static float delta_time_to_turn = 650;
 	static float next_turn_time = delta_time_to_turn;
 	++time;
 
@@ -141,7 +175,7 @@ void Update() {
 	if (camera == &airship_camera) {
 		glm::vec3 new_camera_pos = airship_position;
 		new_camera_pos.y += 5;
-		new_camera_pos.x -= airship_dir ? 5 : -5;
+		new_camera_pos.x -= airship_dir ? 7 : -7;
 		camera->cameraPos = new_camera_pos;
 		camera->cameraFront = glm::vec3((airship_dir ? 1.f : -1.f), -1.f, .0f);
 		camera->cameraUp = glm::vec3((airship_dir ? 1.f : -1.f), 1.f, .0f);
@@ -152,6 +186,23 @@ void Update() {
 		present_position.y -= present_fall_speed;
 		if (present_position.y < 0)
 			present_exists = false;
+		else {
+			for (auto it = targets.begin(); it != targets.end(); ++it) {
+				if (glm::distance(present_position, *it) <
+					target_radius * target_radius + present_radius * present_radius) {
+					targets.erase(it);
+					std::cout << "+1 point\n";
+					SpawnNewTarget();
+					break;
+				}
+			}
+		}
+	}
+}
+
+void InitScene() {
+	for (int i = 0; i < TARGETS_COUNT; ++i) {
+		SpawnNewTarget();
 	}
 }
 
@@ -160,6 +211,7 @@ void InitModels() {
 	floor_model = Model(floor_model_path, floor_texture_path);
 	airship_model = Model(airship_model_path, airship_texture_path);
 	present_model = Model(present_model_path, present_texture_path);
+	target_model = Model(target_model_path, target_texture_path);
 }
 
 void Init() {
@@ -168,7 +220,6 @@ void Init() {
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(0.5, 0.5, 0.5, 0.0);
 	InitModels();
-
 	//glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f));
 	//glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 1.0f, 0.0f));
 	//glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
@@ -251,6 +302,12 @@ void Draw() {
 		model = glm::rotate(model, glm::radians(airship_dir ? 180.0f : 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::scale(model, glm::vec3(.3f, .3f, .3f));
 		DrawModel(airship_model, model, Program);
+	}
+
+	for (auto& target : targets) {
+		model = glm::translate(glm::mat4(1.0f), target);
+		model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
+		DrawModel(target_model, model, Program);
 	}
 	//
 	//model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 3.5f));
@@ -374,6 +431,7 @@ int main() {
 	window.setActive(true);
 	glewInit();
 	Init();
+	InitScene();
 
 	while (window.isOpen()) {
 		sf::Event event;
