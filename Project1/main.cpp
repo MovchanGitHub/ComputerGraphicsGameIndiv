@@ -14,7 +14,8 @@ Model model0;
 Model model1;
 Model model2;
 Model tree_model;
-GLuint instanceVBO;
+Model floor_model;
+Model airship_model;
 
 const std::string model_path = "data/Cearadactylus.obj";
 const std::string texture_path = "data/Cearadactylus.jpg";
@@ -25,11 +26,20 @@ const std::string texture_path2 = "data/Triceratops.png";
 const std::string model_path3 = "data/treeBirch.obj";
 const std::string texture_path3 = "data/treeBirch.jpg";
 
+const std::string tree_model_path = "data/12150_Christmas_Tree_V2_L2.obj";
+const std::string tree_texture_path = "data/tree.jpg";
+
+const std::string floor_model_path = "data/floor.obj";
+const std::string floor_texture_path = "data/bus2.png";
+
+const std::string airship_model_path = "data/15724_Steampunk_Vehicle_Dirigible_v1.obj";
+const std::string airship_texture_path = "data/New Bitmap Image.jpg";
+
 enum class light_kind {PointLightSource, Spotlight, DirLightSource};
 constexpr light_kind LIGHT_KIND = light_kind::PointLightSource;
 
 enum class shader_kind {Phong, OrenNayar, Toon, ToonSpecular};
-constexpr shader_kind SHADER_KIND = shader_kind::OrenNayar;
+constexpr shader_kind SHADER_KIND = shader_kind::Phong;
 
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -49,13 +59,13 @@ struct Light {
 };
 
 Light light = {
-	glm::vec4(0.0f, 10.0f, 0.0f, 1.0f),  // Позиция прожектора (например, на высоте 5, по оси Y)
+	glm::vec4(10.0f, 10.0f, 10.0f, 1.0f),  // Позиция прожектора (например, на высоте 5, по оси Y)
 	glm::vec3(0.0f, -1.0f, 0.0f),  // Направление светового луча вниз по оси Y
-	cos(glm::radians(20.0f)),  // Угол отсечения 30 градусов (косинус угла отсечения)
-	20.0f,  // Коэффициент экспоненциального затухания (можно регулировать для более мягкого или резкого падения света)
-	glm::vec3(1.0f, 0.01f, 0.0001f),  // Коэффициенты затухания: (constant, linear, quadratic)
-	glm::vec4(0.1f, 0.1f, 0.1f, 1.0f),  // Фоновая составляющая (слабое освещение)
-	glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),  // Рассеянная составляющая (освещает объекты белым светом)
+	cos(glm::radians(40.0f)),  // Угол отсечения 30 градусов (косинус угла отсечения)
+	1.0f,  // Коэффициент экспоненциального затухания (можно регулировать для более мягкого или резкого падения света)
+	glm::vec3(.5f, 0.001f, 0.0001f),  // Коэффициенты затухания: (constant, linear, quadratic)
+	glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),  // Фоновая составляющая (слабое освещение)
+	glm::vec4(2.0f, 2.0f, 2.0f, 2.0f),  // Рассеянная составляющая (освещает объекты белым светом)
 	glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)  // Зеркальная составляющая (белый свет для отражений)
 };
 
@@ -97,11 +107,28 @@ void InitShader() {
 	}
 }
 
+glm::vec3 airship_position = glm::vec3(0.0f, 5.0f, 0.0f);
+bool airship_dir = +1;
+void Update() {
+	static int time = 0;
+	static float airship_speed = 0.1;
+	constexpr static int delta_time_to_turn = 100;
+	++time;
+	if ((time + delta_time_to_turn / 2) % delta_time_to_turn == 0)
+		airship_dir = !airship_dir;
+	if (airship_dir)
+		airship_position[0] += airship_speed;
+	else
+		airship_position[0] -= airship_speed;
+}
+
 void InitModels() {
-	model0 = Model(model_path, texture_path);
-	model1 = Model(model_path1, texture_path1);
-	model2 = Model(model_path2, texture_path2);
-	tree_model = Model(model_path3, texture_path3);
+	//model0 = Model(model_path, texture_path);
+	//model1 = Model(model_path1, texture_path1);
+	//model2 = Model(model_path2, texture_path2);
+	tree_model = Model(tree_model_path, tree_texture_path);
+	floor_model = Model(floor_model_path, floor_texture_path);
+	airship_model = Model(airship_model_path, airship_texture_path);
 }
 
 void Init() {
@@ -146,53 +173,60 @@ void Draw() {
 
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
 
-	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, -15.0f));
-	model = glm::translate(model, glm::vec3(0.0f, 5.5f, 3.5f));
-	model = glm::rotate(model, glm::radians(180.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	DrawModel(model0, model, Program);
+	glm::mat4 model;
 
-	model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, -3.0f, 3.0f));
-	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 1.0f));
-	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	DrawModel(model1, model, Program);
-
-	model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 2.0f));
-	model = glm::scale(model, glm::vec3(0.16f, 0.16f, 0.16f));
-	DrawModel(model2, model, Program);
-
-	model = glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, -0.1f));
-	model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
-	DrawModel(model2, model, Program);
-
-	model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 0.0f, -2.0f));
+	//model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, -15.0f));
+	//model = glm::translate(model, glm::vec3(0.0f, 5.5f, 3.5f));
+	//model = glm::rotate(model, glm::radians(180.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
+	//DrawModel(model0, model, Program);
+	//
+	//model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, -3.0f, 3.0f));
+	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 1.0f));
+	//model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
+	//DrawModel(model1, model, Program);
+	//
+	//model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 2.0f));
+	//model = glm::scale(model, glm::vec3(0.16f, 0.16f, 0.16f));
+	//DrawModel(model2, model, Program);
+	//
+	//model = glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, -0.1f));
+	//model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	//model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+	//DrawModel(model2, model, Program);
+	//
+	model = glm::mat4(1.0f);
 	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
 	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
 	DrawModel(tree_model, model, Program);
+	
+	model = glm::mat4(1.0f);
+	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+	DrawModel(floor_model, model, Program);
 
-	model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, -3.0f));
-	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	DrawModel(tree_model, model, Program);
-
-	model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 3.5f));
-	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	DrawModel(tree_model, model, Program);
-
-	model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 3.5f));
-	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	DrawModel(tree_model, model, Program);
-
-	model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 3.5f));
-	model = glm::translate(model, glm::vec3(-30.0f, 30.0f, 30.0f));
-	model = glm::rotate(model, glm::radians(165.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	model = glm::rotate(model, glm::radians(65.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	DrawModel(model0, model, Program);
+	model = glm::translate(glm::mat4(1.0f), airship_position);
+	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	model = glm::scale(model, glm::vec3(.3f, .3f, .3f));
+	DrawModel(airship_model, model, Program);
+	//
+	//model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 3.5f));
+	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	//model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
+	//DrawModel(tree_model, model, Program);
+	//
+	//model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 3.5f));
+	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	//model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
+	//DrawModel(tree_model, model, Program);
+	//
+	//model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 3.5f));
+	//model = glm::translate(model, glm::vec3(-30.0f, 30.0f, 30.0f));
+	//model = glm::rotate(model, glm::radians(165.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	//model = glm::rotate(model, glm::radians(65.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
+	//DrawModel(model0, model, Program);
 
 	glUniformMatrix4fv(glGetUniformLocation(Program, "transform.viewProjection"), 1, GL_FALSE, glm::value_ptr(projection * view));
 	glUniform3fv(glGetUniformLocation(Program, "transform.viewPosition"), 1, glm::value_ptr(cameraPos));
@@ -241,13 +275,13 @@ void Release() {
 
 void HandleKeyboardInput() {
 	constexpr float cameraSpeed = 0.3f;
-	float cameraShiftScale = 1.0f;
-	float rotationSpeed = 1.0f;
+	float cameraShiftScale = 0.5f;
+	float rotationSpeed = 0.75f;
 	constexpr float lightSpeed = 0.2f;
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
-		cameraShiftScale = 3.0f;
-		rotationSpeed = 3 * rotationSpeed;
+		cameraShiftScale *= 2;
+		rotationSpeed *= 2;
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) cameraPos += cameraSpeed * cameraFront * cameraShiftScale;
@@ -313,6 +347,7 @@ int main() {
 		setupProjection(windowSize.x, windowSize.y);
 		aspectRatio = static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y);
 		Draw();
+		Update();
 		window.display();
 	}
 	Release();
