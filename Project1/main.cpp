@@ -69,13 +69,13 @@ struct Light {
 };
 
 Light light = {
-	glm::vec4(10.0f, 10.0f, 10.0f, 1.0f),  // Позиция прожектора (например, на высоте 5, по оси Y)
+	glm::vec4(0.0f, 10.0f, 0.0f, 1.0f),  // Позиция прожектора (например, на высоте 5, по оси Y)
 	glm::vec3(0.0f, -1.0f, 0.0f),  // Направление светового луча вниз по оси Y
-	cos(glm::radians(40.0f)),  // Угол отсечения 30 градусов (косинус угла отсечения)
+	cos(glm::radians(20.0f)),  // Угол отсечения 30 градусов (косинус угла отсечения)
 	1.0f,  // Коэффициент экспоненциального затухания (можно регулировать для более мягкого или резкого падения света)
-	glm::vec3(.5f, 0.001f, 0.0001f),  // Коэффициенты затухания: (constant, linear, quadratic)
+	glm::vec3(1.f, 0.01f, 0.001f),  // Коэффициенты затухания: (constant, linear, quadratic)
 	glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),  // Фоновая составляющая (слабое освещение)
-	glm::vec4(2.0f, 2.0f, 2.0f, 2.0f),  // Рассеянная составляющая (освещает объекты белым светом)
+	glm::vec4(3.0f, 3.0f, 3.0f, 1.0f),  // Рассеянная составляющая (освещает объекты белым светом)
 	glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)  // Зеркальная составляющая (белый свет для отражений)
 };
 
@@ -127,6 +127,7 @@ float target_radius = 0.5f;
 float present_radius = 0.5f;
 constexpr int TARGETS_COUNT = 5;
 int kill_count = 0;
+bool freeze = false;
 
 void SpawnNewTarget() {
 	static int border = 20;
@@ -159,6 +160,7 @@ void Update() {
 	static float present_fall_speed = 0.065;
 	constexpr static float delta_time_to_turn = 650;
 	static float next_turn_time = delta_time_to_turn;
+	if (freeze) return;
 	++time;
 
 	// update airship position
@@ -237,7 +239,7 @@ float angleY = 0.0f;
 float aspectRatio;
 
 void DrawModel(const Model& object, const glm::mat4& model, GLuint Program) {
-	const glm::mat4 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
+	const glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
 	glUniformMatrix4fv(glGetUniformLocation(Program, "transform.model"), 1, GL_FALSE, glm::value_ptr(model));
 	glUniformMatrix3fv(glGetUniformLocation(Program, "transform.normal"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
 	object.display_model(Program);
@@ -255,82 +257,11 @@ void Draw() {
 
 	glm::mat4 view = glm::lookAt(camera->cameraPos, camera->cameraPos + camera->cameraFront, camera->cameraUp);
 	glUniformMatrix4fv(glGetUniformLocation(Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
-
-
-	//model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, -15.0f));
-	//model = glm::translate(model, glm::vec3(0.0f, 5.5f, 3.5f));
-	//model = glm::rotate(model, glm::radians(180.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	//DrawModel(model0, model, Program);
-	//
-	//model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, -3.0f, 3.0f));
-	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 1.0f));
-	//model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	//DrawModel(model1, model, Program);
-	//
-	//model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 2.0f));
-	//model = glm::scale(model, glm::vec3(0.16f, 0.16f, 0.16f));
-	//DrawModel(model2, model, Program);
-	//
-	//model = glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, -0.1f));
-	//model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	//model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
-	//DrawModel(model2, model, Program);
-	//
-	model = glm::mat4(1.0f);
-	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	DrawModel(tree_model, model, Program);
-
-	if (present_exists) {
-		model = glm::translate(glm::mat4(1.0f), present_position);
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
-		DrawModel(present_model, model, Program);
-	}
-	
-	model = glm::mat4(1.0f);
-	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
-	DrawModel(floor_model, model, Program);
-
-	if (dont_draw_airship)
-		dont_draw_airship = false;
-	else {
-		model = glm::translate(glm::mat4(1.0f), airship_position);
-		model = glm::rotate(model, glm::radians(airship_dir ? 180.0f : 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(.3f, .3f, .3f));
-		DrawModel(airship_model, model, Program);
-	}
-
-	for (auto& target : targets) {
-		model = glm::translate(glm::mat4(1.0f), target);
-		model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
-		DrawModel(target_model, model, Program);
-	}
-	//
-	//model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 3.5f));
-	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	//model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	//DrawModel(tree_model, model, Program);
-	//
-	//model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 3.5f));
-	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	//model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	//DrawModel(tree_model, model, Program);
-	//
-	//model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 3.5f));
-	//model = glm::translate(model, glm::vec3(-30.0f, 30.0f, 30.0f));
-	//model = glm::rotate(model, glm::radians(165.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	//model = glm::rotate(model, glm::radians(65.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-	//DrawModel(model0, model, Program);
-
 	glUniformMatrix4fv(glGetUniformLocation(Program, "transform.viewProjection"), 1, GL_FALSE, glm::value_ptr(projection * view));
 	glUniform3fv(glGetUniformLocation(Program, "transform.viewPosition"), 1, glm::value_ptr(camera->cameraPos));
 
+	// LIGHT
 	glUniform4fv(glGetUniformLocation(Program, "light.position"), 1, glm::value_ptr(light.position));
 	glUniform4fv(glGetUniformLocation(Program, "light.ambient"), 1, glm::value_ptr(light.ambient));
 	glUniform4fv(glGetUniformLocation(Program, "light.diffuse"), 1, glm::value_ptr(light.diffuse));
@@ -354,6 +285,42 @@ void Draw() {
 	if constexpr (SHADER_KIND == shader_kind::OrenNayar)
 		glUniform1f(glGetUniformLocation(Program, "roughness"), 0.6f); // От 0 до 1
 
+
+	// XMAS TREE
+	model = glm::mat4(1.0f);
+	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
+	DrawModel(tree_model, model, Program);
+
+	// PRESENT
+	if (present_exists) {
+		model = glm::translate(glm::mat4(1.0f), present_position);
+		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		DrawModel(present_model, model, Program);
+	}
+	
+	// FLOOR
+	model = glm::mat4(1.0f);
+	model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+	DrawModel(floor_model, model, Program);
+
+	// AIRSHIP
+	if (dont_draw_airship)
+		dont_draw_airship = false;
+	else {
+		model = glm::translate(glm::mat4(1.0f), airship_position);
+		model = glm::rotate(model, glm::radians(airship_dir ? 180.0f : 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(.3f, .3f, .3f));
+		DrawModel(airship_model, model, Program);
+	}
+
+	// TARGETS
+	for (auto& target : targets) {
+		model = glm::translate(glm::mat4(1.0f), target);
+		model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
+		DrawModel(target_model, model, Program);
+	}
+	
 	glUseProgram(0); // Отключаем шейдерную программу
 }
 
@@ -379,9 +346,12 @@ void HandleKeyboardInput() {
 	float rotationSpeed = 0.75f;
 	constexpr float lightSpeed = 0.2f;
 	static int change_camera_cool_down = 0;
+	static int freeze_cool_down = 0;
 
 	if (change_camera_cool_down > 0)
 		--change_camera_cool_down;
+	if (freeze_cool_down > 0)
+		--freeze_cool_down;
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
 		cameraShiftScale *= 2;
@@ -400,6 +370,11 @@ void HandleKeyboardInput() {
 		present_exists = true;
 		present_position = airship_position;
 		present_position.y -= 0.2;
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tab) && !freeze_cool_down) {
+		freeze = !freeze;
+		freeze_cool_down = 20;
 	}
 
 	if (camera == &free_camera) {
