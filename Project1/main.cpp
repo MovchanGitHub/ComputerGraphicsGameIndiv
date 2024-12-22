@@ -13,9 +13,13 @@
 Model tree_model;
 Model floor_model;
 Model airship_model;
+Model present_model;
 
 const std::string tree_model_path = "data/12150_Christmas_Tree_V2_L2.obj";
 const std::string tree_texture_path = "data/tree.jpg";
+
+const std::string present_model_path = "data/giftbox_obj.obj";
+const std::string present_texture_path = "data/teapot.png";
 
 const std::string floor_model_path = "data/floor.obj";
 const std::string floor_texture_path = "data/bus2.png";
@@ -111,10 +115,13 @@ void InitShader() {
 glm::vec3 airship_position = glm::vec3(0.0f, 5.0f, 0.0f);
 bool dont_draw_airship = false;
 bool airship_dir = +1;
+glm::vec3 present_position;
+bool present_exists = false;
 void Update() {
 	static float time = 0;
 	static float eps = 1e-4;
 	static float airship_speed = 0.065;
+	static float present_fall_speed = 0.065;
 	constexpr static float delta_time_to_turn = 300;
 	static float next_turn_time = delta_time_to_turn;
 	++time;
@@ -139,15 +146,20 @@ void Update() {
 		camera->cameraFront = glm::vec3((airship_dir ? 1.f : -1.f), -1.f, .0f);
 		camera->cameraUp = glm::vec3((airship_dir ? 1.f : -1.f), 1.f, .0f);
 	}
+
+	// update present position
+	if (present_exists) {
+		present_position.y -= present_fall_speed;
+		if (present_position.y < 0)
+			present_exists = false;
+	}
 }
 
 void InitModels() {
-	//model0 = Model(model_path, texture_path);
-	//model1 = Model(model_path1, texture_path1);
-	//model2 = Model(model_path2, texture_path2);
 	tree_model = Model(tree_model_path, tree_texture_path);
 	floor_model = Model(floor_model_path, floor_texture_path);
 	airship_model = Model(airship_model_path, airship_texture_path);
+	present_model = Model(present_model_path, present_texture_path);
 }
 
 void Init() {
@@ -220,6 +232,12 @@ void Draw() {
 	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
 	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
 	DrawModel(tree_model, model, Program);
+
+	if (present_exists) {
+		model = glm::translate(glm::mat4(1.0f), present_position);
+		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		DrawModel(present_model, model, Program);
+	}
 	
 	model = glm::mat4(1.0f);
 	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
@@ -318,6 +336,12 @@ void HandleKeyboardInput() {
 			camera = &airship_camera;
 		else
 			camera = &free_camera;
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && !present_exists) {
+		present_exists = true;
+		present_position = airship_position;
+		present_position.y -= 0.2;
 	}
 
 	if (camera == &free_camera) {
