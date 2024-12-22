@@ -126,6 +126,7 @@ bool present_exists = false;
 float target_radius = 0.5f;
 float present_radius = 0.5f;
 constexpr int TARGETS_COUNT = 5;
+int kill_count = 0;
 
 void SpawnNewTarget() {
 	static int border = 20;
@@ -191,7 +192,7 @@ void Update() {
 				if (glm::distance(present_position, *it) <
 					target_radius * target_radius + present_radius * present_radius) {
 					targets.erase(it);
-					std::cout << "+1 point\n";
+					++kill_count;
 					SpawnNewTarget();
 					break;
 				}
@@ -445,6 +446,7 @@ int main() {
 		HandleKeyboardInput();
 		Update();
 		Draw();
+		window.setTitle("kill count " + std::to_string(kill_count));
 		window.display();
 	}
 	Release();
