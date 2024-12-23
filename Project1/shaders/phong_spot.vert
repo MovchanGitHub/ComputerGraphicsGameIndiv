@@ -52,7 +52,7 @@ void main() {
 	
     vec4 projectorDir = projector.position - vertex;
 	Vert.distance = length(projectorDir);
-    Vert.projectorDir = normalize(vec3(projectorDir));
+    Vert.projectorDir = vec3(projectorDir);
     
-    Vert.lightDir = normalize(vec3(light.position));
+    Vert.lightDir = vec3(light.position);
 }

@@ -17,7 +17,7 @@ const std::string tree_texture_path = "data/tree.jpg";
 const std::string present_model_path = "data/giftbox_obj.obj";
 const std::string present_texture_path = "data/teapot.png";
 
-const std::string floor_model_path = "data/floor2.obj";
+const std::string floor_model_path = "data/floor.obj";
 const std::string floor_texture_path = "data/snowman.jpg";
 
 const std::string airship_model_path = "data/15724_Steampunk_Vehicle_Dirigible_v1.obj";
