@@ -79,7 +79,7 @@ Light light = {
 	cos(glm::radians(20.0f)),  // Угол отсечения 30 градусов (косинус угла отсечения)
 	1.0f,  // Коэффициент экспоненциального затухания (можно регулировать для более мягкого или резкого падения света)
 	glm::vec3(1.f, 0.1f, 0.01f),  // Коэффициенты затухания: (constant, linear, quadratic)
-	glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),  // Фоновая составляющая (слабое освещение)
+	glm::vec4(0.1f, 0.1f, 0.1f, 1.0f),  // Фоновая составляющая (слабое освещение)
 	glm::vec4(1.f, 1.f, 1.f, 1.0f),  // Рассеянная составляющая (освещает объекты белым светом)
 	glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)  // Зеркальная составляющая (белый свет для отражений)
 };
@@ -218,6 +218,10 @@ void Draw() {
 	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 	free_camera.cameraFront = glm::normalize(front);
 
+	static float time = 0;
+	time += 0.1f;
+	glUniform1f(glGetUniformLocation(Program, "time"), time);
+
 	glm::mat4 model;
 
 	glm::mat4 view = glm::lookAt(camera->cameraPos, camera->cameraPos + camera->cameraFront, camera->cameraUp);
@@ -252,10 +256,12 @@ void Draw() {
 
 
 	// XMAS TREE
+	glUniform1i(glGetUniformLocation(Program, "applyWave"), 1);
 	model = glm::mat4(1.0f);
 	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
 	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
 	DrawModel(tree_model, model, Program);
+	glUniform1i(glGetUniformLocation(Program, "applyWave"), 0);
 
 	// PRESENT
 	if (present_exists) {

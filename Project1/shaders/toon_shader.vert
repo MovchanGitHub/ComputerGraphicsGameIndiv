@@ -15,6 +15,9 @@ uniform struct Transform {
     vec3 viewPosition;
 } transform;
 
+uniform int applyWave;
+uniform float time;
+
 uniform struct SpotLight {
     vec4 position;
     vec4 ambient;
@@ -44,6 +47,15 @@ out Vertex {
 
 void main() {
     vec4 vertex = transform.model * vec4(position, 1.0);
+	
+	 if (applyWave == 1) { 
+		float waveAmplitude = 0.05; // Амплитуда колыхания 
+		float waveSpeed = 0.4; // Скорость колыхания 
+ 
+		vertex.x += sin(vertex.y + time * waveSpeed) * waveAmplitude; 
+		vertex.z += cos(vertex.y + time * waveSpeed) * waveAmplitude * 0.5; 
+	} 
+	
 	gl_Position = transform.viewProjection * vertex;
 	Vert.texcoord = vec2(texcoord.x, 1.0f - texcoord.y);
 	Vert.normal = transform.normal * normal;
