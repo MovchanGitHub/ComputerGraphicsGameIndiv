@@ -21,16 +21,10 @@ const std::string floor_model_path = "data/floor.obj";
 const std::string floor_texture_path = "data/floor.png";
 
 const std::string airship_model_path = "data/airship.obj";
-const std::string airship_texture_path = "data/bus2.png";
+const std::string airship_texture_path = "data/airship.png";
 
 const std::string target_model_path = "data/snowman.obj";
 const std::string target_texture_path = "data/snowman.png";
-
-enum class light_kind {PointLightSource, Spotlight, DirLightSource};
-constexpr light_kind LIGHT_KIND = light_kind::Spotlight;
-
-enum class shader_kind {Phong, OrenNayar, Toon, ToonSpecular};
-constexpr shader_kind SHADER_KIND = shader_kind::Toon;
 
 Model tree_model;
 Model floor_model;
@@ -94,7 +88,7 @@ Light light = {
 GLuint Program;
 
 void InitShader() {
-	Program = load_shaders("shaders/phong_spot.vert", "shaders/toon_spot.frag");
+	Program = load_shaders("shaders/toon_shader.vert", "shaders/toon_shader.frag");
 }
 
 glm::vec3 airship_position = glm::vec3(0.0f, 3.0f, 0.0f);
@@ -204,14 +198,6 @@ void Init() {
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(0.5, 0.5, 0.5, 0.0);
 	InitModels();
-	//glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f));
-	//glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 1.0f, 0.0f));
-	//glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
-	//glUseProgram(Program);
-	//glUniformMatrix4fv(glGetUniformLocation(Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-	//glUniformMatrix4fv(glGetUniformLocation(Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-	//glUniformMatrix4fv(glGetUniformLocation(Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-	//glUseProgram(0);
 }
 
 float angleX = 0.0f;
@@ -320,8 +306,12 @@ void ReleaseShader() {
 void Release() {
 	// Шейдеры
 	ReleaseShader();
-	// Вершинный буфер
-	//model0.release();
+
+	tree_model.release();
+	floor_model.release();
+	airship_model.release();
+	present_model.release();
+	target_model.release();
 }
 
 void HandleKeyboardInput() {
