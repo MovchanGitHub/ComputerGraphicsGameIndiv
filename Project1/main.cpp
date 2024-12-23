@@ -11,20 +11,20 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-const std::string tree_model_path = "data/12150_Christmas_Tree_V2_L2.obj";
-const std::string tree_texture_path = "data/tree.jpg";
+const std::string tree_model_path = "data/tree.obj";
+const std::string tree_texture_path = "data/tree.png";
 
-const std::string present_model_path = "data/giftbox_obj.obj";
-const std::string present_texture_path = "data/teapot.png";
+const std::string present_model_path = "data/present.obj";
+const std::string present_texture_path = "data/present.png";
 
 const std::string floor_model_path = "data/floor.obj";
-const std::string floor_texture_path = "data/snowman.jpg";
+const std::string floor_texture_path = "data/floor.png";
 
-const std::string airship_model_path = "data/15724_Steampunk_Vehicle_Dirigible_v1.obj";
+const std::string airship_model_path = "data/airship.obj";
 const std::string airship_texture_path = "data/bus2.png";
 
 const std::string target_model_path = "data/snowman.obj";
-const std::string target_texture_path = "data/snowman.jpg";
+const std::string target_texture_path = "data/snowman.png";
 
 enum class light_kind {PointLightSource, Spotlight, DirLightSource};
 constexpr light_kind LIGHT_KIND = light_kind::Spotlight;
@@ -71,7 +71,7 @@ struct Light {
 Light projector = {
 	glm::vec4(0.0f, 10.0f, 0.0f, 1.0f),  // Позиция прожектора (например, на высоте 5, по оси Y)
 	glm::vec3(0.0f, -1.0f, 0.0f),  // Направление светового луча вниз по оси Y
-	cos(glm::radians(30.0f)),  // Угол отсечения 30 градусов (косинус угла отсечения)
+	cos(glm::radians(20.0f)),  // Угол отсечения 30 градусов (косинус угла отсечения)
 	2.0f,  // Коэффициент экспоненциального затухания (можно регулировать для более мягкого или резкого падения света)
 	glm::vec3(1.f, 0.01f, 0.001f),  // Коэффициенты затухания: (constant, linear, quadratic)
 	glm::vec4(0.1f, 0.1f, 0.1f, 1.0f),  // Фоновая составляющая (слабое освещение)
@@ -80,11 +80,11 @@ Light projector = {
 };
 
 Light light = {
-	glm::vec4(0.0f, 10.0f, 0.0f, 1.0f),  // Позиция прожектора (например, на высоте 5, по оси Y)
+	glm::vec4(0.0f, 15.0f, 0.0f, 1.0f),  // Позиция прожектора (например, на высоте 5, по оси Y)
 	glm::vec3(0.0f, -1.0f, 0.0f),  // Направление светового луча вниз по оси Y
 	cos(glm::radians(20.0f)),  // Угол отсечения 30 градусов (косинус угла отсечения)
 	1.0f,  // Коэффициент экспоненциального затухания (можно регулировать для более мягкого или резкого падения света)
-	glm::vec3(1.f, 0.01f, 0.001f),  // Коэффициенты затухания: (constant, linear, quadratic)
+	glm::vec3(1.f, 0.1f, 0.01f),  // Коэффициенты затухания: (constant, linear, quadratic)
 	glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),  // Фоновая составляющая (слабое освещение)
 	glm::vec4(1.f, 1.f, 1.f, 1.0f),  // Рассеянная составляющая (освещает объекты белым светом)
 	glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)  // Зеркальная составляющая (белый свет для отражений)
@@ -365,10 +365,10 @@ void HandleKeyboardInput() {
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::L) && !projector_cool_down) {
-		if (projector.spotCosCutoff == cos(glm::radians(30.0f)))
+		if (projector.spotCosCutoff == cos(glm::radians(20.0f)))
 			projector.spotCosCutoff = cos(glm::radians(0.0f));
 		else
-			projector.spotCosCutoff = cos(glm::radians(30.0f));
+			projector.spotCosCutoff = cos(glm::radians(20.0f));
 
 		projector_cool_down = 20;
 	}
@@ -385,13 +385,6 @@ void HandleKeyboardInput() {
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) yaw -= rotationSpeed;
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) yaw += rotationSpeed;
 	}
-
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) projector.position[0] += lightSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) projector.position[0] -= lightSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) projector.position[1] += lightSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::M)) projector.position[1] -= lightSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::H)) projector.position[2] += lightSpeed;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) projector.position[2] -= lightSpeed;
 
 	if (pitch > 89.0f) pitch = 89.0f;
 	if (pitch < -89.0f) pitch = -89.0f;
